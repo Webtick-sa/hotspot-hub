@@ -9,6 +9,7 @@ import {
   transactions,
   users,
   vouchers,
+  settings,
 } from "./mock-data";
 
 interface EnvBindings {
@@ -23,6 +24,23 @@ declare global {
 
 const DEFAULT_MONGODB_URI = "mongodb+srv://oxeansa:oxeanpass1@cluster0.sh0vm.mongodb.net/?appName=Cluster0";
 const DEFAULT_DB_NAME = "linkdb";
+
+const clients = new Set<WebSocket>();
+
+function broadcast(message: string) {
+  for (const client of clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
+// Broadcast updates every 5 seconds
+setInterval(() => {
+  broadcast(JSON.stringify({ type: 'update' }));
+}, 5000);
+
+export { broadcast, clients };
 
 function getEnvBindings(env: unknown): EnvBindings | undefined {
   if (!env || typeof env !== "object") return undefined;
@@ -63,6 +81,36 @@ async function ensureCollectionSeeded<T>(db: Db, name: string, docs: T[]) {
   }
 }
 
+async function calculateRevenue7d(db: Db) {
+  const transactions = await db.collection("transactions").find().toArray();
+  const revenueMap = new Map<string, { topups: number; vouchers: number; ads: number }>();
+  transactions.forEach((t: any) => {
+    const date = new Date(t.timestamp);
+    const day = date.toISOString().split('T')[0];
+    if (!revenueMap.has(day)) revenueMap.set(day, { topups: 0, vouchers: 0, ads: 0 });
+    const rev = revenueMap.get(day)!;
+    if (t.type === 'topup') rev.topups += t.amount;
+    else if (t.type === 'voucher') rev.vouchers += t.amount;
+    else if (t.type === 'session') rev.ads += t.amount; // Assuming ads revenue from sessions
+  });
+  const revenue7d = Array.from(revenueMap.entries()).map(([day, data]) => ({ day, ...data }));
+  await db.collection("revenue7d").deleteMany({});
+  await db.collection("revenue7d").insertMany(revenue7d);
+}
+
+async function calculateSessionsHourly(db: Db) {
+  const sessions = await db.collection("activeSessions").find().toArray();
+  const sessionMap = new Map<string, number>();
+  sessions.forEach((s: any) => {
+    const date = new Date(s.startedAt);
+    const hour = date.getHours().toString().padStart(2, '0') + ':00';
+    sessionMap.set(hour, (sessionMap.get(hour) || 0) + 1);
+  });
+  const sessionsHourly = Array.from(sessionMap.entries()).map(([h, v]) => ({ h, v }));
+  await db.collection("sessionsHourly").deleteMany({});
+  await db.collection("sessionsHourly").insertMany(sessionsHourly);
+}
+
 export async function ensureDbSeeded(env?: unknown) {
   const db = await getDb(env);
   await Promise.all([
@@ -75,7 +123,10 @@ export async function ensureDbSeeded(env?: unknown) {
     ensureCollectionSeeded(db, "notifications", notifications),
     ensureCollectionSeeded(db, "revenue7d", revenue7d),
     ensureCollectionSeeded(db, "sessionsHourly", sessionsHourly),
+    ensureCollectionSeeded(db, "settings", settings),
   ]);
+  await calculateRevenue7d(db);
+  await calculateSessionsHourly(db);
 }
 
 function jsonResponse(data: unknown, status = 200) {
@@ -88,10 +139,6 @@ function jsonResponse(data: unknown, status = 200) {
 export async function handleApiRequest(request: Request, env: unknown): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname.replace(/^\/api\/?/, "").replace(/\/$/, "");
-
-  if (request.method !== "GET") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
-  }
 
   try {
     await ensureDbSeeded(env);
@@ -122,6 +169,7 @@ export async function handleApiRequest(request: Request, env: unknown): Promise<
       "notifications",
       "revenue7d",
       "sessionsHourly",
+      "settings",
     ]);
 
     const collectionName = path === "ads" ? "advertisements" : path;
@@ -130,7 +178,48 @@ export async function handleApiRequest(request: Request, env: unknown): Promise<
       return jsonResponse({ error: "Not found" }, 404);
     }
 
-    return jsonResponse(await db.collection(collectionName).find().toArray());
+    if (request.method === "GET") {
+      return jsonResponse(await db.collection(collectionName).find().toArray());
+    }
+
+    if (request.method === "POST" && collectionName === "advertisements") {
+      const body = await request.json();
+      body._id = { $oid: Date.now().toString() }; // Simple ID generation
+      body.impressions = 0;
+      body.daily_count = 0;
+      await db.collection(collectionName).insertOne(body);
+      await calculateRevenue7d(db); // Recalculate after insert
+      await calculateSessionsHourly(db);
+      broadcast(JSON.stringify({ type: 'update' })); // Notify clients
+      return jsonResponse({ success: true }, 201);
+    }
+
+    if (request.method === "PUT" && collectionName === "settings") {
+      const body = await request.json();
+      const { _id, ...dataToUpdate } = body; // Remove MongoDB's _id to avoid issues
+      
+      // Try to update by id field first
+      let result = await db.collection(collectionName).updateOne({ id: "main" }, { $set: dataToUpdate });
+      
+      // If no match, try to find any document and update it
+      if (result.matchedCount === 0) {
+        const existing = await db.collection(collectionName).findOne({});
+        if (existing) {
+          // Update the first document found
+          await db.collection(collectionName).updateOne({ _id: existing._id }, { $set: { ...dataToUpdate, id: "main" } });
+        } else {
+          // No documents exist, insert a new one
+          await db.collection(collectionName).insertOne({ id: "main", ...dataToUpdate } as any);
+        }
+      }
+      
+      // Fetch and return the updated document for verification
+      const updated = await db.collection(collectionName).findOne({ id: "main" });
+      broadcast(JSON.stringify({ type: 'update' })); // Notify clients
+      return jsonResponse(updated || { success: true });
+    }
+
+    return jsonResponse({ error: "Method not allowed" }, 405);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     return jsonResponse({ error: message }, 500);

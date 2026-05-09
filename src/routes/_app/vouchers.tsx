@@ -97,24 +97,26 @@ function VouchersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Plan</TableHead>
+                <TableHead>Pin</TableHead>
+                <TableHead>Provider</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Duration</TableHead>
+                <TableHead className="text-right">Remaining</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead>Redeemed by</TableHead>
+                <TableHead>User</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {vouchers.map((v) => (
-                <TableRow key={v.id} className="font-mono text-xs">
-                  <TableCell className="font-semibold tracking-wider">{v.code}</TableCell>
-                  <TableCell className="text-muted-foreground">{v.plan}</TableCell>
+                <TableRow key={v._id.$oid} className="font-mono text-xs">
+                  <TableCell className="font-semibold tracking-wider">{v.pin}</TableCell>
+                  <TableCell className="text-muted-foreground">{v.provider}</TableCell>
                   <TableCell className="text-right">{fmtCurrency(v.amount)}</TableCell>
-                  <TableCell className="text-right">{v.durationHours}h</TableCell>
-                  <TableCell className="text-muted-foreground">{v.createdAt}</TableCell>
-                  <TableCell className="text-muted-foreground">{v.redeemedBy ?? "—"}</TableCell>
+                  <TableCell className="text-right">{fmtCurrency(v.remaining_value)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(v.created_at.$date).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{v.user_id ?? "—"}</TableCell>
                   <TableCell>
                     <StatusDot status={v.status} />
                   </TableCell>

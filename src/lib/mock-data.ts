@@ -22,6 +22,10 @@ export interface WalletUser {
   id: string;
   mac: string;
   device: string;
+  first_name?: string;
+  last_name?: string;
+  password?: string;
+  primary_mac?: string;
   balance: number;
   lifetimeSpend: number;
   status: "active" | "suspended" | "expired";
@@ -31,14 +35,15 @@ export interface WalletUser {
 }
 
 export interface Voucher {
-  id: string;
-  code: string;
-  plan: string;
+  _id: { $oid: string };
+  pin: string;
   amount: number;
-  durationHours: number;
-  status: "unused" | "active" | "redeemed" | "expired";
-  createdAt: string;
-  redeemedBy?: string;
+  remaining_value: number;
+  user_id: string | null;
+  mac: string;
+  created_at: { $date: string };
+  status: "assigned" | "unused" | "active" | "redeemed" | "expired";
+  provider: string;
 }
 
 export interface Advertisement {
@@ -101,6 +106,29 @@ export interface NotificationItem {
   sentAt: string;
   delivered: number;
   opened: number;
+}
+
+export interface Settings {
+  id: string;
+  auto_disconnect_zero_balance: boolean;
+  show_ads_to_paying_users: boolean;
+  email_daily_revenue_report: boolean;
+  slack_alerts_offline_nodes: boolean;
+  currency: string;
+  default_rate_mb: number;
+  idle_timeout_min: number;
+  session_cap_hours: number;
+  network_name: string;
+  primary_color: string;
+  welcome_message: string;
+  terms_url: string;
+  mac_auto_login: boolean;
+  voucher_code: boolean;
+  mpesa_stk_push: boolean;
+  watch_ad_unlock: boolean;
+  social_login: boolean;
+  hotspot_host: string;
+  radius_shared_secret: string;
 }
 
 export const nodes: Node[] = [
@@ -246,7 +274,11 @@ export const users: WalletUser[] = [
   {
     id: "w1",
     mac: "A4:5E:60:11:22:01",
+    primary_mac: "A4:5E:60:11:22:01",
     device: "iPhone 14",
+    first_name: "Asha",
+    last_name: "Mumo",
+    password: "asha123",
     balance: 124.5,
     lifetimeSpend: 980,
     status: "active",
@@ -335,61 +367,70 @@ export const users: WalletUser[] = [
 
 export const vouchers: Voucher[] = [
   {
-    id: "v1",
-    code: "WIFI-7H2K-9PXM",
-    plan: "1 Hour / 500MB",
-    amount: 20,
-    durationHours: 1,
-    status: "unused",
-    createdAt: "2026-05-08",
+    _id: { $oid: "69c27b9caf4487b838d3ffdb" },
+    pin: "123456789",
+    amount: 5,
+    remaining_value: 5,
+    user_id: null,
+    mac: "7E%3A7E%3AE6%3A86%3A03%3A58",
+    created_at: { $date: "2026-03-24T11:55:08.931Z" },
+    status: "assigned",
+    provider: "local",
   },
   {
-    id: "v2",
-    code: "WIFI-3J4D-K2NA",
-    plan: "1 Day / 2GB",
+    _id: { $oid: "69c27b9caf4487b838d3ffdc" },
+    pin: "WIFI-3J4D-K2NA",
     amount: 100,
-    durationHours: 24,
+    remaining_value: 0,
+    user_id: "w2",
+    mac: "A4:5E:60:11:22:02",
+    created_at: { $date: "2026-05-08T09:22:00.000Z" },
     status: "active",
-    createdAt: "2026-05-08",
-    redeemedBy: "A4:5E:60:11:22:02",
+    provider: "local",
   },
   {
-    id: "v3",
-    code: "WIFI-88BC-MM01",
-    plan: "1 Week / 10GB",
+    _id: { $oid: "69c27b9caf4487b838d3ffdd" },
+    pin: "WIFI-88BC-MM01",
     amount: 500,
-    durationHours: 168,
+    remaining_value: 0,
+    user_id: "w4",
+    mac: "A4:5E:60:11:22:04",
+    created_at: { $date: "2026-05-01T12:00:00.000Z" },
     status: "redeemed",
-    createdAt: "2026-05-01",
-    redeemedBy: "A4:5E:60:11:22:04",
+    provider: "local",
   },
   {
-    id: "v4",
-    code: "WIFI-XPP9-ALPK",
-    plan: "1 Hour / 500MB",
+    _id: { $oid: "69c27b9caf4487b838d3ffde" },
+    pin: "WIFI-XPP9-ALPK",
     amount: 20,
-    durationHours: 1,
+    remaining_value: 20,
+    user_id: null,
+    mac: "A4:5E:60:11:22:09",
+    created_at: { $date: "2026-05-09T14:30:00.000Z" },
     status: "unused",
-    createdAt: "2026-05-09",
+    provider: "local",
   },
   {
-    id: "v5",
-    code: "WIFI-22ZZ-PLMN",
-    plan: "1 Month / 50GB",
+    _id: { $oid: "69c27b9caf4487b838d3ffdf" },
+    pin: "WIFI-22ZZ-PLMN",
     amount: 1500,
-    durationHours: 720,
+    remaining_value: 0,
+    user_id: "w6",
+    mac: "A4:5E:60:11:22:06",
+    created_at: { $date: "2026-04-01T08:45:00.000Z" },
     status: "expired",
-    createdAt: "2026-04-01",
-    redeemedBy: "A4:5E:60:11:22:06",
+    provider: "local",
   },
   {
-    id: "v6",
-    code: "WIFI-AB12-XX99",
-    plan: "1 Day / 2GB",
+    _id: { $oid: "69c27b9caf4487b838d3ffe0" },
+    pin: "WIFI-AB12-XX99",
     amount: 100,
-    durationHours: 24,
+    remaining_value: 100,
+    user_id: null,
+    mac: "A4:5E:60:11:22:10",
+    created_at: { $date: "2026-05-09T10:10:00.000Z" },
     status: "unused",
-    createdAt: "2026-05-09",
+    provider: "local",
   },
 ];
 
@@ -675,3 +716,28 @@ export const sessionsHourly = [
 ];
 
 export const fmtCurrency = (n: number) => `R ${n.toLocaleString()}`;
+
+export const settings: Settings[] = [
+  {
+    id: "main",
+    auto_disconnect_zero_balance: true,
+    show_ads_to_paying_users: false,
+    email_daily_revenue_report: true,
+    slack_alerts_offline_nodes: true,
+    currency: "R",
+    default_rate_mb: 0.1,
+    idle_timeout_min: 30,
+    session_cap_hours: 24,
+    network_name: "Hotspot Hub",
+    primary_color: "#3b82f6",
+    welcome_message: "Welcome to Hotspot Hub!",
+    terms_url: "https://example.com/terms",
+    mac_auto_login: false,
+    voucher_code: true,
+    mpesa_stk_push: true,
+    watch_ad_unlock: true,
+    social_login: false,
+    hotspot_host: "hotspot.example.com",
+    radius_shared_secret: "shared-secret",
+  },
+];

@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { PageHeader, Panel, StatCard } from "@/components/dashboard-ui";
 import { fmtCurrency } from "@/lib/mock-data";
 import { fetchAds } from "@/lib/api";
 import { Megaphone, Eye, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
   Table,
   TableBody,
@@ -13,12 +15,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_app/ads")({
   component: AdsPage,
 });
 
 function AdsPage() {
+  const queryClient = useQueryClient();
+  const [modalOpen, setModalOpen] = useState(false);
   const {
     data: ads,
     isLoading,
@@ -27,8 +44,41 @@ function AdsPage() {
     queryKey: ["ads"],
     queryFn: fetchAds,
     enabled: typeof window !== "undefined",
-    refetchInterval: 5000, // Poll every 5 seconds for real-time updates
+    refetchInterval: 5000, // Fallback polling
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'update') {
+        queryClient.invalidateQueries({ queryKey: ['ads'] });
+      }
+    };
+    return () => ws.close();
+  }, [queryClient]);
+
+  const handleNewCampaign = async (formData: FormData) => {
+    const data = Object.fromEntries(formData);
+    try {
+      const response = await fetch('/api/advertisements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        setModalOpen(false);
+        queryClient.invalidateQueries({ queryKey: ['ads'] });
+        toast.success('Campaign created');
+      } else {
+        toast.error('Failed to create campaign');
+      }
+    } catch (error) {
+      toast.error('Error creating campaign');
+    }
+  };
 
   if (isLoading) {
     return <div className="p-6">Loading ads…</div>;
@@ -49,9 +99,144 @@ function AdsPage() {
         title="Ads"
         description="Manage active ad campaigns and portal creative from the advertisements collection."
         actions={
-          <Button size="sm">
-            <Plus className="mr-1.5 h-3.5 w-3.5" /> New campaign
-          </Button>
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="mr-1.5 h-3.5 w-3.5" /> New campaign
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Create New Campaign</DialogTitle>
+                <DialogDescription>
+                  Add a new advertisement campaign to the portal.
+                </DialogDescription>
+              </DialogHeader>
+              <form action={handleNewCampaign} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="ad_id">Ad ID</Label>
+                    <Input id="ad_id" name="ad_id" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="ad_title">Ad Title</Label>
+                    <Input id="ad_title" name="ad_title" required />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="campaign">Campaign</Label>
+                  <Input id="campaign" name="campaign" required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="campaign_start">Start Date</Label>
+                    <Input id="campaign_start" name="campaign_start" type="datetime-local" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="campaign_end">End Date</Label>
+                    <Input id="campaign_end" name="campaign_end" type="datetime-local" required />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="target_nodes">Target Nodes</Label>
+                  <Input id="target_nodes" name="target_nodes" placeholder="all or node ids" required />
+                </div>
+                <div>
+                  <Label htmlFor="ad_url">Ad URL</Label>
+                  <Input id="ad_url" name="ad_url" placeholder="/ads/filename.mp4" required />
+                </div>
+                <div>
+                  <Label htmlFor="target_url">Target URL</Label>
+                  <Input id="target_url" name="target_url" placeholder="https://example.com" required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="ad_type">Ad Type</Label>
+                    <Select name="ad_type">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="banner">Banner</SelectItem>
+                        <SelectItem value="video">Video</SelectItem>
+                        <SelectItem value="interstitial">Interstitial</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ad_duration">Duration (seconds)</Label>
+                    <Input id="ad_duration" name="ad_duration" type="number" required />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="custom_button_text">Button Text</Label>
+                  <Input id="custom_button_text" name="custom_button_text" required />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch id="active" name="active" defaultChecked />
+                  <Label htmlFor="active">Active</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cpv_rate">CPV Rate</Label>
+                    <Input id="cpv_rate" name="cpv_rate" type="number" step="0.01" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="budget">Budget</Label>
+                    <Input id="budget" name="budget" type="number" step="0.01" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="total_limit">Total Limit</Label>
+                    <Input id="total_limit" name="total_limit" type="number" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="daily_limit">Daily Limit</Label>
+                    <Input id="daily_limit" name="daily_limit" type="number" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="bill_id">Bill ID</Label>
+                    <Input id="bill_id" name="bill_id" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="bill_date">Bill Date</Label>
+                    <Input id="bill_date" name="bill_date" type="number" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="bill_type">Bill Type</Label>
+                    <Select name="bill_type">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="recurring">Recurring</SelectItem>
+                        <SelectItem value="one-time">One-time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch id="bill_paid" name="bill_paid" />
+                    <Label htmlFor="bill_paid">Bill Paid</Label>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="cpn">CPN</Label>
+                  <Input id="cpn" name="cpn" required />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Create Campaign</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         }
       />
       <div className="grid gap-4 p-6 md:grid-cols-4">

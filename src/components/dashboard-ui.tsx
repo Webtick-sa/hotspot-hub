@@ -68,7 +68,8 @@ export function StatusDot({
     | "paused"
     | "draft"
     | "unused"
-    | "redeemed";
+    | "redeemed"
+    | "assigned";
 }) {
   const colorMap: Record<string, string> = {
     online: "bg-success text-success",

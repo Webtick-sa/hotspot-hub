@@ -10,7 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toast";
 
 function NotFoundComponent() {
   return (
@@ -68,7 +68,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "MeshGrid NOC — Prepaid WiFi Console" },
+      { title: "Asher-Link NOC — Prepaid WiFi Console" },
       {
         name: "description",
         content: "Manage prepaid WiFi nodes, wallets, vouchers, ads and revenue from one console.",

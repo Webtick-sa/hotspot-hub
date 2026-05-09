@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { PageHeader, Panel } from "@/components/dashboard-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/lib/auth";
 import { ShieldCheck, User, Plus } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -14,6 +17,54 @@ export const Route = createFileRoute("/_app/settings")({
 function SettingsPage() {
   const { user, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const queryClient = useQueryClient();
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["settings"],
+    queryFn: () => fetch("/api/settings").then(r => r.json()).then(arr => arr[0]),
+    enabled: typeof window !== "undefined",
+  });
+
+  const [formData, setFormData] = useState<any>({});
+
+  useEffect(() => {
+    if (settings) {
+      setFormData(settings);
+    }
+  }, [settings]);
+
+  const handleSave = async () => {
+    try {
+      const { _id, ...dataToSend } = formData;
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSend),
+      });
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+        toast.success('Settings saved');
+      } else {
+        toast.error('Failed to save settings');
+      }
+    } catch (error) {
+      toast.error('Failed to save settings');
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'update') {
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+      }
+    };
+    return () => ws.close();
+  }, [queryClient]);
+
+  if (isLoading) return <div>Loading settings…</div>;
 
   return (
     <div>
@@ -95,20 +146,26 @@ function SettingsPage() {
         </Panel>
 
         <Panel title="System preferences">
-          {[
-            { k: "Auto-disconnect zero balance", v: true },
-            { k: "Show ads to paying users", v: false },
-            { k: "Email daily revenue report", v: true },
-            { k: "Slack alerts for offline nodes", v: true },
-          ].map((row) => (
-            <div
-              key={row.k}
-              className="flex items-center justify-between border-b border-border/40 py-3 last:border-0"
-            >
-              <div className="text-sm">{row.k}</div>
-              <Switch defaultChecked={row.v} />
-            </div>
-          ))}
+          <div className="space-y-3">
+            {[
+              { key: "auto_disconnect_zero_balance", label: "Auto-disconnect zero balance" },
+              { key: "show_ads_to_paying_users", label: "Show ads to paying users" },
+              { key: "email_daily_revenue_report", label: "Email daily revenue report" },
+              { key: "slack_alerts_offline_nodes", label: "Slack alerts for offline nodes" },
+            ].map((row) => (
+              <div
+                key={row.key}
+                className="flex items-center justify-between border-b border-border/40 py-3 last:border-0"
+              >
+                <div className="text-sm">{row.label}</div>
+                <Switch
+                  checked={formData[row.key] || false}
+                  onCheckedChange={(checked) => setFormData({ ...formData, [row.key]: checked })}
+                />
+              </div>
+            ))}
+            <Button onClick={handleSave} size="sm">Save Preferences</Button>
+          </div>
         </Panel>
 
         <Panel title="Pricing & currency">
@@ -117,27 +174,48 @@ function SettingsPage() {
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 Currency
               </Label>
-              <Input defaultValue="KES" className="mt-1.5 font-mono" />
+              <Input
+                value={formData.currency || ""}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="mt-1.5 font-mono"
+              />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 Default rate / MB
               </Label>
-              <Input defaultValue="0.05" className="mt-1.5 font-mono" />
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.default_rate_mb || ""}
+                onChange={(e) => setFormData({ ...formData, default_rate_mb: parseFloat(e.target.value) })}
+                className="mt-1.5 font-mono"
+              />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 Idle timeout (min)
               </Label>
-              <Input defaultValue="10" className="mt-1.5 font-mono" />
+              <Input
+                type="number"
+                value={formData.idle_timeout_min || ""}
+                onChange={(e) => setFormData({ ...formData, idle_timeout_min: parseInt(e.target.value) })}
+                className="mt-1.5 font-mono"
+              />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                 Session cap (hours)
               </Label>
-              <Input defaultValue="24" className="mt-1.5 font-mono" />
+              <Input
+                type="number"
+                value={formData.session_cap_hours || ""}
+                onChange={(e) => setFormData({ ...formData, session_cap_hours: parseInt(e.target.value) })}
+                className="mt-1.5 font-mono"
+              />
             </div>
           </div>
+          <Button onClick={handleSave} size="sm" className="mt-3">Save Pricing</Button>
         </Panel>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Wifi, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -59,10 +59,10 @@ function LoginPage() {
           </div>
           <div className="text-center">
             <h1 className="font-mono text-2xl font-semibold tracking-[0.2em] text-primary text-glow">
-              MESHGRID
+              Asher-Link
             </h1>
             <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Prepaid WiFi · NOC Console
+              NOC Console
             </p>
           </div>
         </div>

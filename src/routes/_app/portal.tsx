@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { PageHeader, Panel } from "@/components/dashboard-ui";
 import { Wifi, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,12 +8,61 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toast";
 
 export const Route = createFileRoute("/_app/portal")({
   component: PortalPage,
 });
 
 function PortalPage() {
+  const queryClient = useQueryClient();
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["settings"],
+    queryFn: () => fetch("/api/settings").then(r => r.json()).then(arr => arr[0]),
+    enabled: typeof window !== "undefined",
+  });
+
+  const [formData, setFormData] = useState<any>({});
+
+  useEffect(() => {
+    if (settings) {
+      setFormData(settings);
+    }
+  }, [settings]);
+
+  const handleSave = async () => {
+    try {
+      const { _id, ...dataToSend } = formData;
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSend),
+      });
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+        toast.success('Portal settings saved');
+      } else {
+        toast.error('Failed to save portal settings');
+      }
+    } catch (error) {
+      toast.error('Failed to save portal settings');
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'update') {
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+      }
+    };
+    return () => ws.close();
+  }, [queryClient]);
+
+  if (isLoading) return <div>Loading portal settings…</div>;
   return (
     <div>
       <PageHeader
@@ -26,7 +77,11 @@ function PortalPage() {
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                   Network name
                 </Label>
-                <Input defaultValue="MeshGrid Free WiFi" className="mt-1.5 font-mono" />
+                <Input
+                  value={formData.network_name || ""}
+                  onChange={(e) => setFormData({ ...formData, network_name: e.target.value })}
+                  className="mt-1.5 font-mono"
+                />
               </div>
               <div>
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -34,7 +89,11 @@ function PortalPage() {
                 </Label>
                 <div className="mt-1.5 flex items-center gap-2">
                   <div className="h-9 w-9 rounded-md bg-primary" />
-                  <Input defaultValue="#22D3EE" className="font-mono" />
+                  <Input
+                    value={formData.primary_color || ""}
+                    onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
+                    className="font-mono"
+                  />
                 </div>
               </div>
               <div className="md:col-span-2">
@@ -42,7 +101,8 @@ function PortalPage() {
                   Welcome message
                 </Label>
                 <Textarea
-                  defaultValue="Welcome! Sign in or top up your wallet to get connected."
+                  value={formData.welcome_message || ""}
+                  onChange={(e) => setFormData({ ...formData, welcome_message: e.target.value })}
                   className="mt-1.5"
                   rows={3}
                 />
@@ -51,7 +111,11 @@ function PortalPage() {
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                   Terms URL
                 </Label>
-                <Input defaultValue="https://meshgrid.example/terms" className="mt-1.5 font-mono" />
+                <Input
+                  value={formData.terms_url || ""}
+                  onChange={(e) => setFormData({ ...formData, terms_url: e.target.value })}
+                  className="mt-1.5 font-mono"
+                />
               </div>
             </div>
           </Panel>
@@ -59,28 +123,31 @@ function PortalPage() {
           <Panel title="Authentication methods">
             {[
               {
-                k: "MAC auto-login",
-                v: true,
+                k: "mac_auto_login",
+                label: "MAC auto-login",
                 desc: "Skip portal if MAC has active wallet balance",
               },
-              { k: "Voucher code", v: true, desc: "Accept prepaid voucher codes" },
-              { k: "M-Pesa STK push", v: true, desc: "On-portal mobile money payment" },
+              { k: "voucher_code", label: "Voucher code", desc: "Accept prepaid voucher codes" },
+              { k: "mpesa_stk_push", label: "M-Pesa STK push", desc: "On-portal mobile money payment" },
               {
-                k: "Watch ad to unlock",
-                v: false,
+                k: "watch_ad_unlock",
+                label: "Watch ad to unlock",
                 desc: "Free 5-minute pass after viewing video ad",
               },
-              { k: "Social login", v: false, desc: "Sign in with Google / Facebook for free tier" },
+              { k: "social_login", label: "Social login", desc: "Sign in with Google / Facebook for free tier" },
             ].map((row) => (
               <div
                 key={row.k}
                 className="flex items-center justify-between border-b border-border/40 py-3 last:border-0"
               >
                 <div>
-                  <div className="text-sm font-medium">{row.k}</div>
+                  <div className="text-sm font-medium">{row.label}</div>
                   <div className="text-xs text-muted-foreground">{row.desc}</div>
                 </div>
-                <Switch defaultChecked={row.v} />
+                <Switch
+                  checked={formData[row.k] || false}
+                  onCheckedChange={(checked) => setFormData({ ...formData, [row.k]: checked })}
+                />
               </div>
             ))}
           </Panel>
@@ -91,7 +158,11 @@ function PortalPage() {
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                   Hotspot host
                 </Label>
-                <Input defaultValue="hotspot.meshgrid.local" className="mt-1.5 font-mono" />
+                <Input
+                  value={formData.hotspot_host || ""}
+                  onChange={(e) => setFormData({ ...formData, hotspot_host: e.target.value })}
+                  className="mt-1.5 font-mono"
+                />
               </div>
               <div>
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -99,7 +170,8 @@ function PortalPage() {
                 </Label>
                 <Input
                   type="password"
-                  defaultValue="****************"
+                  value={formData.radius_shared_secret || ""}
+                  onChange={(e) => setFormData({ ...formData, radius_shared_secret: e.target.value })}
                   className="mt-1.5 font-mono"
                 />
               </div>
@@ -151,7 +223,7 @@ function PortalPage() {
               </div>
             </div>
           </Panel>
-          <Button className="w-full">Publish portal changes</Button>
+          <Button onClick={handleSave} className="w-full">Publish portal changes</Button>
         </div>
       </div>
     </div>

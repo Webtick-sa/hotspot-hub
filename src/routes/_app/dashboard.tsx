@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   Activity,
   Users,
@@ -33,12 +34,26 @@ export const Route = createFileRoute("/_app/dashboard")({
 });
 
 function Dashboard() {
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery<DashboardData>({
     queryKey: ["dashboard"],
     queryFn: fetchDashboardData,
     enabled: typeof window !== "undefined",
-    refetchInterval: 5000, // Poll every 5 seconds for real-time updates
+    refetchInterval: 5000, // Fallback polling
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'update') {
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      }
+    };
+    return () => ws.close();
+  }, [queryClient]);
 
   if (isLoading) {
     return <div className="p-6">Loading dashboard data…</div>;

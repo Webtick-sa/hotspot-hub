@@ -2,7 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { handleApiRequest } from "./lib/mongo";
+import { handleApiRequest, broadcast, clients } from "./lib/mongo";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -71,6 +71,26 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const url = new URL(request.url);
+      if (url.pathname === "/ws") {
+        const upgradeHeader = request.headers.get("Upgrade");
+        if (upgradeHeader !== "websocket") {
+          return new Response("Expected Upgrade: websocket", { status: 426 });
+        }
+        const webSocketPair = new WebSocketPair();
+        const [client, server] = Object.values(webSocketPair);
+        server.accept();
+        clients.add(server);
+        server.addEventListener("close", () => {
+          clients.delete(server);
+        });
+        server.addEventListener("message", (event) => {
+          // Handle incoming messages if needed
+        });
+        return new Response(null, {
+          status: 101,
+          webSocket: client,
+        });
+      }
       if (url.pathname.startsWith("/api")) {
         return await handleApiRequest(request, env);
       }
