@@ -27,6 +27,7 @@ function AdsPage() {
     queryKey: ["ads"],
     queryFn: fetchAds,
     enabled: typeof window !== "undefined",
+    refetchInterval: 5000, // Poll every 5 seconds for real-time updates
   });
 
   if (isLoading) {

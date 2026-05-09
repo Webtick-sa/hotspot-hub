@@ -37,6 +37,7 @@ function Dashboard() {
     queryKey: ["dashboard"],
     queryFn: fetchDashboardData,
     enabled: typeof window !== "undefined",
+    refetchInterval: 5000, // Poll every 5 seconds for real-time updates
   });
 
   if (isLoading) {

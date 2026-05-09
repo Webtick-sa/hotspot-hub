@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { PageHeader, Panel, StatCard } from "@/components/dashboard-ui";
+import { PageHeader, Panel, StatCard, StatusDot } from "@/components/dashboard-ui";
 import { fetchUsers } from "@/lib/api";
 import { fmtCurrency } from "@/lib/mock-data";
 import { Wallet, UserCheck, AlertCircle } from "lucide-react";
@@ -28,6 +28,7 @@ function UsersPage() {
     queryKey: ["users"],
     queryFn: fetchUsers,
     enabled: typeof window !== "undefined",
+    refetchInterval: 5000, // Poll every 5 seconds for real-time updates
   });
 
   if (isLoading) {
