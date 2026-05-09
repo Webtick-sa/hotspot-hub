@@ -11,14 +11,14 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAuthenticated) navigate({ to: "/login" });
-  }, [isAuthenticated, navigate]);
+    if (!isLoading && !isAuthenticated) navigate({ to: "/login" });
+  }, [isAuthenticated, isLoading, navigate]);
 
-  if (!isAuthenticated) return null;
+  if (isLoading || !isAuthenticated) return null;
 
   return (
     <SidebarProvider>

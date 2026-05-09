@@ -13,12 +13,8 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-2 border-b border-border bg-gradient-to-b from-card/40 to-transparent px-6 py-5 md:flex-row md:items-end md:justify-between">
       <div>
-        <h1 className="font-mono text-xl font-semibold tracking-wide text-foreground">
-          {title}
-        </h1>
-        {description && (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        )}
+        <h1 className="font-mono text-xl font-semibold tracking-wide text-foreground">{title}</h1>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
@@ -26,7 +22,11 @@ export function PageHeader({
 }
 
 export function StatCard({
-  label, value, delta, icon, accent = "primary",
+  label,
+  value,
+  delta,
+  icon,
+  accent = "primary",
 }: {
   label: string;
   value: string;
@@ -55,7 +55,21 @@ export function StatCard({
   );
 }
 
-export function StatusDot({ status }: { status: "online" | "offline" | "degraded" | "active" | "expired" | "suspended" | "paused" | "draft" | "unused" | "redeemed" }) {
+export function StatusDot({
+  status,
+}: {
+  status:
+    | "online"
+    | "offline"
+    | "degraded"
+    | "active"
+    | "expired"
+    | "suspended"
+    | "paused"
+    | "draft"
+    | "unused"
+    | "redeemed";
+}) {
   const colorMap: Record<string, string> = {
     online: "bg-success text-success",
     active: "bg-success text-success",
@@ -77,12 +91,22 @@ export function StatusDot({ status }: { status: "online" | "offline" | "degraded
   );
 }
 
-export function Panel({ title, children, actions }: { title?: string; children: ReactNode; actions?: ReactNode }) {
+export function Panel({
+  title,
+  children,
+  actions,
+}: {
+  title?: string;
+  children: ReactNode;
+  actions?: ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-border bg-card/40 backdrop-blur">
       {title && (
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{title}</h3>
+          <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            {title}
+          </h3>
           {actions}
         </div>
       )}

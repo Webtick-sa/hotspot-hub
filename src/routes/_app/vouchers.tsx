@@ -1,15 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader, Panel, StatusDot, StatCard } from "@/components/dashboard-ui";
-import { vouchers, fmtCurrency } from "@/lib/mock-data";
+import { fetchVouchers } from "@/lib/api";
+import { fmtCurrency } from "@/lib/mock-data";
 import { Ticket, Layers, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/_app/vouchers")({
   component: VouchersPage,
 });
 
 function VouchersPage() {
+  const {
+    data: vouchers,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["vouchers"],
+    queryFn: fetchVouchers,
+    enabled: typeof window !== "undefined",
+  });
+
+  if (isLoading) {
+    return <div className="p-6">Loading vouchers…</div>;
+  }
+
+  if (error || !vouchers) {
+    return <div className="p-6 text-destructive">Unable to load vouchers.</div>;
+  }
+
   const unused = vouchers.filter((v) => v.status === "unused").length;
   const value = vouchers.filter((v) => v.status === "unused").reduce((s, v) => s + v.amount, 0);
   return (
@@ -19,14 +46,28 @@ function VouchersPage() {
         description="Generate and track prepaid access codes."
         actions={
           <>
-            <Button size="sm" variant="outline"><Download className="mr-1.5 h-3.5 w-3.5" /> Export PDF</Button>
-            <Button size="sm"><Plus className="mr-1.5 h-3.5 w-3.5" /> Generate batch</Button>
+            <Button size="sm" variant="outline">
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Export PDF
+            </Button>
+            <Button size="sm">
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Generate batch
+            </Button>
           </>
         }
       />
       <div className="grid gap-4 p-6 md:grid-cols-3">
-        <StatCard label="Unused vouchers" value={String(unused)} icon={<Ticket className="h-5 w-5" />} accent="info" />
-        <StatCard label="Float in pool" value={fmtCurrency(value)} icon={<Layers className="h-5 w-5" />} accent="primary" />
+        <StatCard
+          label="Unused vouchers"
+          value={String(unused)}
+          icon={<Ticket className="h-5 w-5" />}
+          accent="info"
+        />
+        <StatCard
+          label="Float in pool"
+          value={fmtCurrency(value)}
+          icon={<Layers className="h-5 w-5" />}
+          accent="primary"
+        />
         <StatCard label="Redeemed (week)" value="248" delta="+12% vs last week" accent="success" />
       </div>
 
@@ -39,8 +80,12 @@ function VouchersPage() {
         ].map((p) => (
           <Panel key={p.name}>
             <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{p.name} plan</p>
-              <p className={`font-mono text-2xl font-semibold ${p.color}`}>{fmtCurrency(p.price)}</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                {p.name} plan
+              </p>
+              <p className={`font-mono text-2xl font-semibold ${p.color}`}>
+                {fmtCurrency(p.price)}
+              </p>
               <p className="text-xs text-muted-foreground">{p.data} cap</p>
             </div>
           </Panel>
@@ -70,7 +115,9 @@ function VouchersPage() {
                   <TableCell className="text-right">{v.durationHours}h</TableCell>
                   <TableCell className="text-muted-foreground">{v.createdAt}</TableCell>
                   <TableCell className="text-muted-foreground">{v.redeemedBy ?? "—"}</TableCell>
-                  <TableCell><StatusDot status={v.status} /></TableCell>
+                  <TableCell>
+                    <StatusDot status={v.status} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

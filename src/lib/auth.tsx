@@ -12,6 +12,7 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   hasRole: (role: Role) => boolean;
@@ -34,13 +35,22 @@ const DEMO_USERS: Record<string, { password: string; user: AuthUser }> = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      setIsLoading(false);
+      return;
+    }
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      try { setUser(JSON.parse(raw)); } catch { /* ignore */ }
+      try {
+        setUser(JSON.parse(raw));
+      } catch {
+        /* ignore */
+      }
     }
+    setIsLoading(false);
   }, []);
 
   const login = async (username: string, password: string) => {
@@ -62,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
+        isLoading,
         login,
         logout,
         hasRole: (role) => user?.role === role,

@@ -1,11 +1,29 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Radio, Network, Wallet, Ticket, Megaphone,
-  Globe, Bell, BarChart3, Activity, Settings, Wifi
+  LayoutDashboard,
+  Radio,
+  Network,
+  Wallet,
+  Ticket,
+  Megaphone,
+  Globe,
+  Bell,
+  BarChart3,
+  Activity,
+  Settings,
+  Wifi,
 } from "lucide-react";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
@@ -67,7 +85,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-mono text-sm font-semibold tracking-wider text-primary text-glow">
-                MESHGRID
+                Asher-Link
               </span>
               <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                 NOC Console
@@ -117,7 +135,12 @@ export function AppSidebar() {
                 </span>
               </div>
             </div>
-            <Button size="sm" variant="ghost" className="h-7 justify-start text-xs" onClick={logout}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 justify-start text-xs"
+              onClick={logout}
+            >
               Sign out
             </Button>
           </div>

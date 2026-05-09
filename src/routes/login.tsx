@@ -12,15 +12,27 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) navigate({ to: "/" });
-  }, [isAuthenticated, navigate]);
+    if (!isLoading && isAuthenticated) navigate({ to: "/" });
+  }, [isAuthenticated, isLoading, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background bg-grid px-4">
+        <div className="text-center">
+          <div className="text-sm text-muted-foreground">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) return null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -66,23 +78,48 @@ function LoginPage() {
 
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="u" className="text-xs uppercase tracking-wider text-muted-foreground">Username</Label>
-              <Input id="u" value={username} onChange={(e) => setUsername(e.target.value)} className="font-mono" autoComplete="username" />
+              <Label htmlFor="u" className="text-xs uppercase tracking-wider text-muted-foreground">
+                Username
+              </Label>
+              <Input
+                id="u"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="font-mono"
+                autoComplete="username"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="p" className="text-xs uppercase tracking-wider text-muted-foreground">Password</Label>
-              <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="font-mono" autoComplete="current-password" />
+              <Label htmlFor="p" className="text-xs uppercase tracking-wider text-muted-foreground">
+                Password
+              </Label>
+              <Input
+                id="p"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="font-mono"
+                autoComplete="current-password"
+              />
             </div>
           </div>
 
-          <Button type="submit" className="mt-5 w-full font-mono uppercase tracking-wider" disabled={loading}>
+          <Button
+            type="submit"
+            className="mt-5 w-full font-mono uppercase tracking-wider"
+            disabled={loading}
+          >
             {loading ? "Authenticating..." : "Sign in"}
           </Button>
 
           <div className="mt-5 rounded-md border border-dashed border-border/70 p-3 text-[11px] text-muted-foreground">
             <p className="mb-1 uppercase tracking-wider text-foreground/70">Demo accounts</p>
-            <p className="font-mono">admin / admin <span className="text-primary">· admin</span></p>
-            <p className="font-mono">operator / operator <span className="text-info">· operator</span></p>
+            <p className="font-mono">
+              admin / admin <span className="text-primary">· admin</span>
+            </p>
+            <p className="font-mono">
+              operator / operator <span className="text-info">· operator</span>
+            </p>
           </div>
         </form>
       </div>
