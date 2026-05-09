@@ -122,6 +122,7 @@ export interface Settings {
   primary_color: string;
   welcome_message: string;
   terms_url: string;
+  portal_html?: string;
   mac_auto_login: boolean;
   voucher_code: boolean;
   mpesa_stk_push: boolean;
@@ -739,5 +740,6 @@ export const settings: Settings[] = [
     social_login: false,
     hotspot_host: "hotspot.example.com",
     radius_shared_secret: "shared-secret",
+    portal_html: "<div style=\"background:#09020f;color:#f8e34a;padding:24px;font-family:Inter,ui-sans-serif,system-ui,sans-serif;\"><h1 style=\"color:#c084fc;\">Welcome to {{network_name}}</h1><p>{{welcome_message}}</p><p><a style=\"color:#fde047;\" href=\"{{terms_url}}\">Terms and conditions</a></p></div>",
   },
 ];

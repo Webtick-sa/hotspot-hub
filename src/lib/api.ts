@@ -47,6 +47,18 @@ export function fetchNotifications() {
   return request<NotificationItem[]>("notifications");
 }
 
+export async function saveNotification(notification: Omit<NotificationItem, 'id' | 'sentAt' | 'delivered' | 'opened'>) {
+  const response = await fetch('/api/notifications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(notification),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to save notification: ${response.statusText}`);
+  }
+  return response.json();
+}
+
 export function fetchRevenue7d() {
   return request<RevenuePoint[]>("revenue7d");
 }
@@ -64,4 +76,52 @@ export function fetchDashboardData() {
     revenue7d: RevenuePoint[];
     sessionsHourly: SessionsHourlyPoint[];
   }>("dashboard");
+}
+
+export function generateAlerts(nodes: Node[], users: WalletUser[]) {
+  const alerts: Array<{
+    id: string;
+    type: 'offline' | 'degraded' | 'low-balance';
+    title: string;
+    description: string;
+    severity: 'critical' | 'warning' | 'info';
+  }> = [];
+
+  // Check for offline nodes
+  const offlineNodes = nodes.filter(n => n.status === 'offline');
+  offlineNodes.forEach(node => {
+    alerts.push({
+      id: `offline-${node.id}`,
+      type: 'offline',
+      title: `${node.name} offline`,
+      description: `${node.location} · Last seen: ${node.lastSeen}`,
+      severity: 'critical'
+    });
+  });
+
+  // Check for degraded nodes
+  const degradedNodes = nodes.filter(n => n.status === 'degraded');
+  degradedNodes.forEach(node => {
+    alerts.push({
+      id: `degraded-${node.id}`,
+      type: 'degraded',
+      title: `${node.name} degraded`,
+      description: `Signal ${node.signal}dBm, CPU ${node.cpu}%`,
+      severity: 'warning'
+    });
+  });
+
+  // Check for users with low balance
+  const lowBalanceUsers = users.filter(u => u.balance < 10);
+  if (lowBalanceUsers.length > 0) {
+    alerts.push({
+      id: 'low-balance-users',
+      type: 'low-balance',
+      title: `${lowBalanceUsers.length} users with low balance`,
+      description: `Below KES 10 — eligible for top-up reminder`,
+      severity: 'info'
+    });
+  }
+
+  return alerts;
 }

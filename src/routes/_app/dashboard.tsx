@@ -25,7 +25,7 @@ import {
 } from "recharts";
 import { PageHeader, StatCard, Panel, StatusDot } from "@/components/dashboard-ui";
 import { fmtCurrency } from "@/lib/mock-data";
-import { fetchDashboardData } from "@/lib/api";
+import { fetchDashboardData, generateAlerts } from "@/lib/api";
 
 export type DashboardData = Awaited<ReturnType<typeof fetchDashboardData>>;
 
@@ -70,6 +70,7 @@ function Dashboard() {
   const onlineNodes = data.nodes.filter((n) => n.status === "online").length;
   const totalRevenue = data.revenue7d.reduce((s, d) => s + d.topups + d.vouchers + d.ads, 0);
   const totalBalance = data.users.reduce((s, u) => s + u.balance, 0);
+  const alerts = generateAlerts(data.nodes, data.users);
 
   return (
     <div>
@@ -256,29 +257,32 @@ function Dashboard() {
 
         <Panel title="Alerts">
           <div className="space-y-2 text-xs">
-            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-              <div>
-                <div className="font-medium">AP-KAR-09 offline</div>
-                <div className="text-[10px] text-muted-foreground">Karen / Cafe · 1h 14m</div>
+            {alerts.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                No active alerts
               </div>
-            </div>
-            <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2.5">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-              <div>
-                <div className="font-medium">AP-WST-07 degraded</div>
-                <div className="text-[10px] text-muted-foreground">Signal -71dBm, CPU 67%</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-2 rounded-md border border-info/30 bg-info/5 p-2.5">
-              <Users className="mt-0.5 h-4 w-4 shrink-0 text-info" />
-              <div>
-                <div className="font-medium">42 users with low balance</div>
-                <div className="text-[10px] text-muted-foreground">
-                  Below KES 10 — eligible for top-up reminder
-                </div>
-              </div>
-            </div>
+            ) : (
+              alerts.map((alert) => {
+                const icon = alert.severity === 'critical' ? AlertTriangle : 
+                           alert.severity === 'warning' ? AlertTriangle : Users;
+                const borderColor = alert.severity === 'critical' ? 'border-destructive/30' :
+                                  alert.severity === 'warning' ? 'border-warning/30' : 'border-info/30';
+                const bgColor = alert.severity === 'critical' ? 'bg-destructive/5' :
+                              alert.severity === 'warning' ? 'bg-warning/5' : 'bg-info/5';
+                const iconColor = alert.severity === 'critical' ? 'text-destructive' :
+                                alert.severity === 'warning' ? 'text-warning' : 'text-info';
+                
+                return (
+                  <div key={alert.id} className={`flex items-start gap-2 rounded-md border ${borderColor} ${bgColor} p-2.5`}>
+                    <AlertTriangle className={`mt-0.5 h-4 w-4 shrink-0 ${iconColor}`} />
+                    <div>
+                      <div className="font-medium">{alert.title}</div>
+                      <div className="text-[10px] text-muted-foreground">{alert.description}</div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
             <Link
               to="/notifications"
               className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"

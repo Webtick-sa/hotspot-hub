@@ -194,6 +194,17 @@ export async function handleApiRequest(request: Request, env: unknown): Promise<
       return jsonResponse({ success: true }, 201);
     }
 
+    if (request.method === "POST" && collectionName === "notifications") {
+      const body = await request.json();
+      body.id = Date.now().toString(); // Simple ID generation
+      body.sentAt = new Date().toISOString();
+      body.delivered = Math.floor(Math.random() * 1000) + 100; // Mock delivery count
+      body.opened = Math.floor(body.delivered * (0.3 + Math.random() * 0.4)); // Mock open rate 30-70%
+      await db.collection(collectionName).insertOne(body);
+      broadcast(JSON.stringify({ type: 'update' })); // Notify clients
+      return jsonResponse({ success: true }, 201);
+    }
+
     if (request.method === "PUT" && collectionName === "settings") {
       const body = await request.json();
       const { _id, ...dataToUpdate } = body; // Remove MongoDB's _id to avoid issues

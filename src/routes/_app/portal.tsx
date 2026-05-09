@@ -18,11 +18,38 @@ function PortalPage() {
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useQuery({
     queryKey: ["settings"],
-    queryFn: () => fetch("/api/settings").then(r => r.json()).then(arr => arr[0]),
+    queryFn: async () => {
+      const response = await fetch("/api/settings");
+      const data = await response.json();
+      return Array.isArray(data) ? data[0] : data;
+    },
     enabled: typeof window !== "undefined",
   });
 
   const [formData, setFormData] = useState<any>({});
+
+  const previewHtml = (() => {
+    const template = formData.portal_html?.trim() || `
+      <div style="min-height: 360px; padding: 28px; background: #09020f; color: #f8e34a; font-family: Inter, ui-sans-serif, system-ui, sans-serif;">
+        <div style="max-width: 420px; margin: 0 auto; border: 1px solid rgba(248,227,74,.18); border-radius: 22px; padding: 24px; background: rgba(15,7,27,.95); box-shadow: 0 0 40px rgba(158,95,255,.12);">
+          <div style="margin-bottom: 18px; color: #c084fc; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;">
+            ${formData.network_name || "MeshGrid Free WiFi"}
+          </div>
+          <h1 style="margin: 0 0 14px; font-size: 2rem; color: #f8e34a;">${formData.welcome_message || "Welcome! Sign in or top up your wallet to get connected."}</h1>
+          <p style="margin: 0 0 24px; color: #d6c46a; line-height: 1.6;">Connect securely over hotspot access, unlock premium passes, or pay with M-Pesa.</p>
+          <a href="#" style="display: inline-block; padding: 12px 22px; background: #9d4edd; color: #0b0215; border-radius: 999px; font-weight: 700; text-decoration: none;">Start browsing</a>
+          <div style="margin-top: 22px; padding: 16px; border-radius: 14px; background: rgba(255, 214, 90, 0.08); color: #fef3c7;">
+            <strong>Terms</strong> <a href="${formData.terms_url || "#"}" style="color: #fde047;">${formData.terms_url || "https://example.com/terms"}</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return template
+      .replace(/{{network_name}}/g, formData.network_name || "MeshGrid Free WiFi")
+      .replace(/{{welcome_message}}/g, formData.welcome_message || "Welcome! Sign in or top up your wallet to get connected.")
+      .replace(/{{terms_url}}/g, formData.terms_url || "https://example.com/terms");
+  })();
 
   useEffect(() => {
     if (settings) {
@@ -120,6 +147,23 @@ function PortalPage() {
             </div>
           </Panel>
 
+          <Panel title="Portal HTML">
+            <div className="space-y-3">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                HTML template
+              </Label>
+              <Textarea
+                value={formData.portal_html || ""}
+                onChange={(e) => setFormData({ ...formData, portal_html: e.target.value })}
+                className="mt-1.5 bg-black/95 text-yellow-300 font-mono border border-yellow-500/20"
+                rows={10}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use <code className="rounded bg-muted px-1 py-0.5">{'{{network_name}}'}</code>, <code className="rounded bg-muted px-1 py-0.5">{'{{welcome_message}}'}</code>, and <code className="rounded bg-muted px-1 py-0.5">{'{{terms_url}}'}</code> placeholders.
+              </p>
+            </div>
+          </Panel>
+
           <Panel title="Authentication methods">
             {[
               {
@@ -192,33 +236,10 @@ function PortalPage() {
 
         <div className="space-y-4 lg:col-span-2">
           <Panel title="Live preview">
-            <div className="overflow-hidden rounded-lg border border-border bg-background">
-              <div className="bg-card p-4">
-                <div className="mx-auto max-w-xs space-y-3 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                    <Wifi className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold">MeshGrid Free WiFi</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Welcome! Sign in or top up your wallet to get connected.
-                  </p>
-                  <div className="space-y-2 pt-2">
-                    <Button size="sm" className="w-full">
-                      Top up with M-Pesa
-                    </Button>
-                    <Button size="sm" variant="outline" className="w-full">
-                      Enter voucher code
-                    </Button>
-                  </div>
-                  <div className="rounded-md border border-dashed border-border p-3 text-left">
-                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      <ShoppingBag className="h-3 w-3" /> Sponsored
-                    </div>
-                    <p className="mt-1 text-xs">Naivas weekend deals — up to 30% off groceries.</p>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    MAC: A4:5E:60:xx:xx:01 · Balance: KES 12.00
-                  </p>
+            <div className="overflow-hidden rounded-lg border border-yellow-500/20 bg-black/90">
+              <div className="p-4">
+                <div className="overflow-hidden rounded-3xl border border-yellow-400/10 bg-[#0b0415] p-4 shadow-[0_0_60px_rgba(158,95,255,0.2)]">
+                  <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
                 </div>
               </div>
             </div>

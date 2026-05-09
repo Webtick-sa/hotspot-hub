@@ -20,7 +20,12 @@ function SettingsPage() {
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useQuery({
     queryKey: ["settings"],
-    queryFn: () => fetch("/api/settings").then(r => r.json()).then(arr => arr[0]),
+    queryFn: async () => {
+      const response = await fetch("/api/settings");
+      const data = await response.json();
+      // Handle both array and single object returns
+      return Array.isArray(data) ? data[0] : data;
+    },
     enabled: typeof window !== "undefined",
   });
 
