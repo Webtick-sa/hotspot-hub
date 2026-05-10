@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "postbuild": "mkdir -p dist/client/functions && cp dist/server/server.js dist/client/functions/_worker.js && mkdir -p functions && rm -f functions/[[...all]].js && node -e \"const fs=require('fs');const content='import server from \\\"../dist/server/server.js\\\"\\n\\nexport async function onRequest(context) {\\n  return server.fetch(context.request, context.env, context);\\n}\\n';fs.writeFileSync('functions/index.js', content);fs.writeFileSync('functions/[[all]].js', content);fs.writeFileSync('dist/client/functions/index.js', content);fs.writeFileSync('dist/client/functions/[[all]].js', content);\"",
+    "postbuild": "mkdir -p dist/client/functions && cp dist/server/server.js dist/client/functions/_worker.js && mkdir -p functions && rm -f functions/[[...all]].js && node -e \"const fs=require('fs');const content='import server from \\\"../src/server.ts\\\"\\n\\nexport async function onRequest(context) {\\n  return server.fetch(context.request, context.env, context);\\n}\\n';fs.writeFileSync('functions/index.js', content);fs.writeFileSync('functions/[[all]].js', content);fs.writeFileSync('dist/client/functions/index.js', content);fs.writeFileSync('dist/client/functions/[[all]].js', content);\"",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

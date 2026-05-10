@@ -19,7 +19,7 @@ interface EnvBindings {
 }
 
 declare global {
-  var __mongodbClientPromise: Promise<MongoClient> | undefined;
+  var __mongodbClientPromise: Promise<any> | undefined;
 }
 
 const DEFAULT_MONGODB_URI = "mongodb+srv://oxeansa:oxeanpass1@cluster0.sh0vm.mongodb.net/?appName=Cluster0";
@@ -52,6 +52,16 @@ function getProcessEnv(): NodeJS.ProcessEnv | undefined {
   return process.env;
 }
 
+function isNodeRuntime(): boolean {
+  return typeof process !== "undefined" && typeof process.versions === "object" && typeof process.versions.node === "string";
+}
+
+const mongodbPackageName = ["mongo", "db"].join("");
+
+async function importMongoClient(): Promise<typeof import("mongodb")> {
+  return await import(mongodbPackageName);
+}
+
 function getMongoUri(env?: EnvBindings): string {
   const envUri = env?.MONGODB_URI ?? getProcessEnv()?.MONGODB_URI;
   return typeof envUri === "string" && envUri.length > 0 ? envUri : DEFAULT_MONGODB_URI;
@@ -61,10 +71,85 @@ function getDbName(env?: EnvBindings): string {
   return (env?.MONGODB_DB as string) || getProcessEnv()?.MONGODB_DB || DEFAULT_DB_NAME;
 }
 
+const workerCollections: Record<string, any[]> = {
+  nodes,
+  users,
+  vouchers,
+  advertisements: ads,
+  transactions,
+  activeSessions,
+  notifications,
+  revenue7d,
+  sessionsHourly,
+  settings,
+};
+
+function matchFilter(item: Record<string, any>, filter: Record<string, any>): boolean {
+  return Object.entries(filter).every(([key, value]) => {
+    if (value && typeof value === "object" && "$oid" in value && item[key] && typeof item[key] === "object") {
+      return item[key].$oid === value.$oid;
+    }
+    return item[key] === value;
+  });
+}
+
+function createWorkerCollection(name: string) {
+  const items = workerCollections[name] || [];
+
+  return {
+    find: () => ({
+      toArray: async () => items.map((item) => ({ ...item })),
+    }),
+    estimatedDocumentCount: async () => items.length,
+    deleteMany: async (filter: unknown) => {
+      if (!filter || (typeof filter === "object" && Object.keys(filter).length === 0)) {
+        items.length = 0;
+        return;
+      }
+      if (typeof filter === "object" && filter !== null) {
+        for (let i = items.length - 1; i >= 0; i--) {
+          if (matchFilter(items[i], filter as Record<string, any>)) {
+            items.splice(i, 1);
+          }
+        }
+      }
+    },
+    insertMany: async (docs: any[]) => {
+      items.push(...docs.map((doc) => ({ ...doc })));
+    },
+    insertOne: async (doc: any) => {
+      items.push({ ...doc });
+    },
+    updateOne: async (filter: any, update: any) => {
+      const index = items.findIndex((item) => matchFilter(item, filter));
+      if (index === -1) {
+        return { matchedCount: 0, modifiedCount: 0 };
+      }
+      const updateDoc = update?.$set ? { ...items[index], ...update.$set } : { ...items[index] };
+      items[index] = updateDoc;
+      return { matchedCount: 1, modifiedCount: 1 };
+    },
+    findOne: async (filter: any) => {
+      const item = items.find((item) => matchFilter(item, filter));
+      return item ? { ...item } : null;
+    },
+  };
+}
+
+function createWorkerDb() {
+  return {
+    collection: (name: string) => createWorkerCollection(name),
+  };
+}
+
 export async function getDb(env?: unknown): Promise<Db> {
+  if (!isNodeRuntime()) {
+    return createWorkerDb() as unknown as Db;
+  }
+
   const bindings = getEnvBindings(env);
   const uri = getMongoUri(bindings);
-  const { MongoClient: MongoClientRuntime } = await import("mongodb");
+  const { MongoClient: MongoClientRuntime } = await importMongoClient();
 
   if (!globalThis.__mongodbClientPromise) {
     globalThis.__mongodbClientPromise = new MongoClientRuntime(uri).connect();
@@ -183,7 +268,7 @@ export async function handleApiRequest(request: Request, env: unknown): Promise<
     }
 
     if (request.method === "POST" && collectionName === "advertisements") {
-      const body = await request.json();
+      const body = await request.json() as Record<string, any>;
       body._id = { $oid: Date.now().toString() }; // Simple ID generation
       body.impressions = 0;
       body.daily_count = 0;
@@ -195,7 +280,7 @@ export async function handleApiRequest(request: Request, env: unknown): Promise<
     }
 
     if (request.method === "POST" && collectionName === "notifications") {
-      const body = await request.json();
+      const body = await request.json() as Record<string, any>;
       body.id = Date.now().toString(); // Simple ID generation
       body.sentAt = new Date().toISOString();
       body.delivered = Math.floor(Math.random() * 1000) + 100; // Mock delivery count
@@ -206,7 +291,7 @@ export async function handleApiRequest(request: Request, env: unknown): Promise<
     }
 
     if (request.method === "PUT" && collectionName === "settings") {
-      const body = await request.json();
+      const body = await request.json() as Record<string, any>;
       const { _id, ...dataToUpdate } = body; // Remove MongoDB's _id to avoid issues
       
       // Try to update by id field first
