@@ -8,6 +8,8 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 export default defineConfig({
   plugins: [
     TanStackRouterVite({
+      enableRouteGeneration: false,
+      autoCodeSplitting: false,
       codeSplittingOptions: {
         addHmr: false,
       },
