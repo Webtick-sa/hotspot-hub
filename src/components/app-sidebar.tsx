@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   Radio,
   Network,
-  Wallet,
+  User,
   Ticket,
   Megaphone,
   Globe,
@@ -48,7 +48,7 @@ const groups = [
   {
     label: "Monetization",
     items: [
-      { title: "Users & Wallets", url: "/users", icon: Wallet },
+      { title: "Users & Devices", url: "/users", icon: User },
       { title: "Vouchers", url: "/vouchers", icon: Ticket },
       { title: "Ads", url: "/ads", icon: Megaphone },
     ],

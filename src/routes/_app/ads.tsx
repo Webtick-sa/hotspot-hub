@@ -105,14 +105,14 @@ function AdsPage() {
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> New campaign
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="shrink-0">
                 <DialogTitle>Create New Campaign</DialogTitle>
                 <DialogDescription>
                   Add a new advertisement campaign to the portal.
                 </DialogDescription>
               </DialogHeader>
-              <form action={handleNewCampaign} className="space-y-4">
+              <form action={handleNewCampaign} className="space-y-4 overflow-y-auto flex-1 pr-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="ad_id">Ad ID</Label>
@@ -228,7 +228,7 @@ function AdsPage() {
                   <Label htmlFor="cpn">CPN</Label>
                   <Input id="cpn" name="cpn" required />
                 </div>
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-2 sticky bottom-0 bg-gradient-to-t from-background to-background/80 pt-4 mt-4">
                   <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                     Cancel
                   </Button>

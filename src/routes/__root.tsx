@@ -68,10 +68,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Asher-Link NOC — Prepaid WiFi Console" },
+      { title: "Asher-Link NOC Console" },
       {
         name: "description",
-        content: "Manage prepaid WiFi nodes, wallets, vouchers, ads and revenue from one console.",
+        content: "Manage Network nodes, users, vouchers, ads and revenue from one console.",
       },
     ],
     links: [{ rel: "stylesheet", href: appCss }],

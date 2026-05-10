@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { PageHeader, Panel, StatusDot, StatCard } from "@/components/dashboard-ui";
 import { fetchVouchers } from "@/lib/api";
 import { fmtCurrency } from "@/lib/mock-data";
@@ -13,12 +14,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 export const Route = createFileRoute("/_app/vouchers")({
   component: VouchersPage,
 });
 
 function VouchersPage() {
+  const queryClient = useQueryClient();
+  const [modalOpen, setModalOpen] = useState(false);
   const {
     data: vouchers,
     isLoading,
@@ -28,6 +43,26 @@ function VouchersPage() {
     queryFn: fetchVouchers,
     enabled: typeof window !== "undefined",
   });
+
+  const handleGenerateBatch = async (formData: FormData) => {
+    const data = Object.fromEntries(formData);
+    try {
+      const response = await fetch('/api/vouchers/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        setModalOpen(false);
+        queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+        toast.success('Batch generated successfully');
+      } else {
+        toast.error('Failed to generate batch');
+      }
+    } catch (error) {
+      toast.error('Error generating batch');
+    }
+  };
 
   if (isLoading) {
     return <div className="p-6">Loading vouchers…</div>;
@@ -49,9 +84,70 @@ function VouchersPage() {
             <Button size="sm" variant="outline">
               <Download className="mr-1.5 h-3.5 w-3.5" /> Export PDF
             </Button>
-            <Button size="sm">
-              <Plus className="mr-1.5 h-3.5 w-3.5" /> Generate batch
-            </Button>
+            <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Generate batch
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Generate Voucher Batch</DialogTitle>
+                  <DialogDescription>
+                    Create a new batch of prepaid vouchers with specific denominations and quantities.
+                  </DialogDescription>
+                </DialogHeader>
+                <form action={handleGenerateBatch} className="space-y-4">
+                  <div>
+                    <Label htmlFor="batch_name">Batch Name</Label>
+                    <Input id="batch_name" name="batch_name" placeholder="e.g., June-2024-Campaign" required />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="denomination">Denomination</Label>
+                      <Select name="denomination" defaultValue="100">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="20">R20 (1 Hour)</SelectItem>
+                          <SelectItem value="100">R100 (1 Day)</SelectItem>
+                          <SelectItem value="500">R500 (1 Week)</SelectItem>
+                          <SelectItem value="1500">R1500 (1 Month)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="quantity">Quantity</Label>
+                      <Input id="quantity" name="quantity" type="number" placeholder="100" min="1" required />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="provider">Provider</Label>
+                    <Select name="provider" defaultValue="internal">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="internal">Internal</SelectItem>
+                        <SelectItem value="partner-a">Partner A</SelectItem>
+                        <SelectItem value="partner-b">Partner B</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="notes">Notes (optional)</Label>
+                    <Input id="notes" name="notes" placeholder="Additional batch info" />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Generate Batch</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </>
         }
       />

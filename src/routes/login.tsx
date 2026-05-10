@@ -113,7 +113,7 @@ function LoginPage() {
           </Button>
 
           <div className="mt-5 rounded-md border border-dashed border-border/70 p-3 text-[11px] text-muted-foreground">
-            <p className="mb-1 uppercase tracking-wider text-foreground/70">Demo accounts</p>
+            <p className="mb-1 uppercase tracking-wider text-foreground/70">Accounts</p>
             <p className="font-mono">
               admin / admin <span className="text-primary">· admin</span>
             </p>
