@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "postbuild": "mkdir -p dist/client/functions && cp dist/server/server.js dist/client/functions/_worker.js",
+    "postbuild": "cp dist/server/server.js dist/client/_worker.js",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
