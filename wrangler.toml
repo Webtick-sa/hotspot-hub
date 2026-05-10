@@ -1,0 +1,4 @@
+name = "hlink-noc"
+type = "javascript"
+compatibility_date = "2026-05-10"
+pages_build_output_dir = "dist/client"
