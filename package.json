@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "postbuild": "mkdir -p dist/client/functions && cp dist/server/server.js dist/client/functions/_worker.js && rm -f dist/client/wrangler.json dist/client/.assetsignore dist/client/_redirects",
+    "postbuild": "mkdir -p dist/client/functions && cp dist/server/server.js dist/client/functions/_worker.js && mkdir -p functions && cp dist/server/server.js functions/_worker.js && rm -f dist/client/wrangler.json dist/client/.assetsignore dist/client/_redirects",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

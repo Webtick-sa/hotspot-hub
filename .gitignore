@@ -18,6 +18,7 @@ dist-ssr
 
 # Wrangler / Cloudflare
 .wrangler/
+functions/
 .dev.vars
 
 
