@@ -1,16 +1,12 @@
 {
   "name": "tanstack_start_ts",
+  "description": "A NOC Site for net management",
   "private": true,
-  "sideEffects": false,
-  "type": "module",
-  "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "postbuild": "mkdir -p dist/client/functions && cp dist/server/server.js dist/client/functions/_worker.js && mkdir -p functions && rm -f functions/[[...all]].js && node -e \"const fs=require('fs');const content='import server from \\\"../dist/server/server.js\\\"\\n\\nexport async function onRequest(context) {\\n  return server.fetch(context.request, context.env, context);\\n}\\n';fs.writeFileSync('functions/index.js', content);fs.writeFileSync('functions/[[all]].js', content);fs.writeFileSync('dist/client/functions/index.js', content);fs.writeFileSync('dist/client/functions/[[all]].js', content);\"",
-    "build:dev": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint .",
-    "format": "prettier --write ."
+  "cloudflare": {
+    "label": "Asher-Link NOC",
+    
+    "categories": [],
+    "publish": true
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
@@ -70,7 +66,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "^1.5.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
@@ -80,10 +75,21 @@
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^15.15.0",
+    "globals": "^16.2.0",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^7.3.1"
-  }
+    "vite": "^7.3.1",
+    "wrangler": "4.21.x"
+  },
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "cf-typegen": "wrangler types",
+    "check": "tsc && vite build && wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "npm run build && vite preview"
+  },
+  "type": "module"
 }
